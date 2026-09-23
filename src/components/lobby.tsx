@@ -1,8 +1,10 @@
 "use client";
 
 import { Check, Clipboard, Clock3, Crown, LogOut, Radio, Users } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAnonymousAccessToken, getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { GameTable } from "@/components/game-table";
 
 type Room = { id: string; join_code: string; capacity: number; timer_seconds: number; victory_mode: "score" | "all_cats"; target_score: number | null; status: string };
 type Player = { id: string; user_id: string; nickname: string; seat: number; is_ready: boolean; is_connected: boolean; is_host: boolean };
@@ -29,7 +31,10 @@ export function Lobby({ code }: { code: string }) {
       };
       await refreshPlayers();
       setMessage("");
-      channel = supabase.channel(`lobby:${found.id}:${crypto.randomUUID()}`).on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${found.id}` }, refreshPlayers).subscribe();
+      channel = supabase.channel(`lobby:${found.id}:${crypto.randomUUID()}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${found.id}` }, refreshPlayers)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${found.id}` }, (payload: { new: unknown }) => setRoom(payload.new as Room))
+        .subscribe();
     }
     void load();
     return () => { if (channel) void supabase.removeChannel(channel); };
@@ -42,14 +47,23 @@ export function Lobby({ code }: { code: string }) {
     if (response.ok && me) setPlayers((current) => current.map((player) => player.id === me.id ? { ...player, is_ready: ready } : player));
   }
 
+  async function startMatch(){
+    if(!room)return;
+    const token=await getAnonymousAccessToken();
+    const response=await fetch("/api/game",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({command:"start",roomId:room.id,idempotencyKey:crypto.randomUUID()})});
+    if(response.ok)setRoom({...room,status:"playing"});
+  }
+
   const me = players.find((player) => player.user_id === userId);
+
+  if(room?.status==="playing"||room?.status==="finished")return <GameTable room={room} players={players} userId={userId} code={code}/>;
 
   return (
     <main className="lobby-page min-h-screen p-5 sm:p-8">
       <div className="mx-auto max-w-6xl">
         <header className="flex items-center justify-between">
-          <a href="/" className="brand-mark focus-ring"><span className="brand-paw">✦</span><span>Regular Kitties</span></a>
-          <a href="/" className="quiet-button"><LogOut size={17} /> Leave room</a>
+          <Link href="/" className="brand-mark focus-ring"><span className="brand-paw">✦</span><span>Regular Kitties</span></Link>
+          <Link href="/" className="quiet-button"><LogOut size={17} /> Leave room</Link>
         </header>
         {message ? <div className="lobby-panel mt-16 text-center"><p className="font-display text-3xl font-bold">{message}</p></div> : room && (
           <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -72,7 +86,7 @@ export function Lobby({ code }: { code: string }) {
               <div className="lobby-panel p-6">
                 <p className="text-sm font-bold text-[var(--muted)]">You are {me?.is_host ? "the host" : `in seat ${me?.seat ?? "—"}`}.</p>
                 <button className="primary-button mt-4 w-full" disabled={!me} onClick={() => void toggleReady(!me?.is_ready)}>{me?.is_ready ? "I’m not ready" : "I’m ready"}</button>
-                {me?.is_host && <button className="secondary-button mt-3 w-full" disabled={players.length < 2 || players.some((player) => !player.is_ready)}>Start match</button>}
+                {me?.is_host && <button className="secondary-button mt-3 w-full" onClick={()=>void startMatch()} disabled={players.length < 2 || players.some((player) => !player.is_ready)}>Start match</button>}
                 {me?.is_host && players.some((player) => !player.is_ready) && <p className="mt-3 text-center text-xs font-bold text-[var(--muted)]">Every player must be ready.</p>}
               </div>
             </aside>
