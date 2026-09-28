@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFoodDeck, canPaySteal, competitionRanks, parsePreference, plateMatches, resolveUniqueLeader, seededShuffle } from "./rules";
+import { buildFoodDeck, canPaySteal, competitionRanks, FOOD_EMOJIS, parsePreference, plateMatches, resolveUniqueLeader, seededShuffle } from "./rules";
 
 describe("food deck", () => {
   it("contains 80 cards and 20 of each food", () => {
@@ -11,6 +11,9 @@ describe("food deck", () => {
 });
 
 describe("preferences", () => {
+  it("maps food tokens to their table emoji", () => {
+    expect(FOOD_EMOJIS).toEqual({ chicken: "🍗", milk: "🥛", fish: "🐟", croquettes: "🧆" });
+  });
   it("parses alternatives and postfix modifiers", () => {
     expect(parsePreference(["fish", "|", "milk", "*", "chicken", "+"])).toEqual([
       [{ food: "fish", min: 1, max: 1 }],

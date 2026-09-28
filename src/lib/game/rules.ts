@@ -3,6 +3,13 @@ export type Food = (typeof FOODS)[number];
 export type Modifier = "*" | "+" | "2" | "3";
 export type PreferenceToken = Food | Modifier | "|";
 
+export const FOOD_EMOJIS: Record<Food, string> = {
+  chicken: "🍗",
+  milk: "🥛",
+  fish: "🐟",
+  croquettes: "🧆",
+};
+
 export type Requirement = { food: Food; min: number; max: number | null };
 export type Preference = Requirement[][];
 

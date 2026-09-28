@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clipboard, Clock3, Crown, LogOut, Radio, Users } from "lucide-react";
+import { Check, Clipboard, Clock3, Crown, Link2, LogOut, Radio, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAnonymousAccessToken, getSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -14,6 +14,7 @@ export function Lobby({ code }: { code: string }) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [userId, setUserId] = useState<string>();
   const [message, setMessage] = useState("Finding your table…");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -54,6 +55,16 @@ export function Lobby({ code }: { code: string }) {
     if(response.ok)setRoom({...room,status:"playing"});
   }
 
+  async function copyInviteLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/room/${code}`);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
+    window.setTimeout(() => setCopyStatus("idle"), 2500);
+  }
+
   const me = players.find((player) => player.user_id === userId);
 
   if(room?.status==="playing"||room?.status==="finished")return <GameTable room={room} players={players} userId={userId} code={code}/>;
@@ -70,7 +81,11 @@ export function Lobby({ code }: { code: string }) {
             <section className="lobby-panel">
               <div className="flex flex-wrap items-start justify-between gap-6 border-b border-[var(--line)] p-6 sm:p-8">
                 <div><p className="eyebrow"><Radio size={14} /> Private lobby</p><h1 className="mt-3 font-display text-4xl font-black">Gather the cats.</h1><p className="mt-2 font-semibold text-[var(--muted)]">Everyone marks ready. Then the host starts the feast.</p></div>
-                <button className="code-card" onClick={() => navigator.clipboard.writeText(code)}><span>Room code</span><strong>{code}</strong><Clipboard size={17} /></button>
+                <div className="invite-actions">
+                  <button className="code-card" onClick={() => void navigator.clipboard.writeText(code)} aria-label={`Copy room code ${code}`}><span>Room code</span><strong>{code}</strong><Clipboard size={17} /></button>
+                  <button className="quiet-button invite-link-button" onClick={() => void copyInviteLink()} aria-describedby="invite-copy-status"><Link2 size={17} />{copyStatus === "copied" ? "Link copied" : "Copy invite link"}</button>
+                  <span id="invite-copy-status" className="copy-status" role="status" aria-live="polite">{copyStatus === "failed" ? "Could not copy the invite link." : copyStatus === "copied" ? "Invite link copied." : ""}</span>
+                </div>
               </div>
               <div className="grid gap-3 p-6 sm:grid-cols-2 sm:p-8">
                 {Array.from({ length: room.capacity }, (_, index) => players.find((player) => player.seat === index + 1)).map((player, index) => (
