@@ -1,0 +1,7 @@
+revoke all on function public.reorder_plate(uuid,uuid[],bigint,uuid),public.use_powerup(uuid,uuid,uuid[],uuid[],bigint,uuid) from public,authenticated;
+alter function public.reorder_plate(uuid,uuid[],bigint,uuid) set schema private;
+alter function public.use_powerup(uuid,uuid,uuid[],uuid[],bigint,uuid) set schema private;
+create function public.reorder_plate(game_id uuid,card_ids uuid[],expected_version bigint,idempotency_key uuid)returns jsonb language sql security invoker set search_path='' as $$select private.reorder_plate(game_id,card_ids,expected_version,idempotency_key)$$;
+create function public.use_powerup(game_id uuid,powerup_card uuid,target_players uuid[]default '{}',target_cards uuid[]default '{}',expected_version bigint default 0,idempotency_key uuid default gen_random_uuid())returns jsonb language sql security invoker set search_path='' as $$select private.use_powerup(game_id,powerup_card,target_players,target_cards,expected_version,idempotency_key)$$;
+revoke all on function private.reorder_plate(uuid,uuid[],bigint,uuid),private.use_powerup(uuid,uuid,uuid[],uuid[],bigint,uuid),public.reorder_plate(uuid,uuid[],bigint,uuid),public.use_powerup(uuid,uuid,uuid[],uuid[],bigint,uuid) from public;
+grant execute on function private.reorder_plate(uuid,uuid[],bigint,uuid),private.use_powerup(uuid,uuid,uuid[],uuid[],bigint,uuid),public.reorder_plate(uuid,uuid[],bigint,uuid),public.use_powerup(uuid,uuid,uuid[],uuid[],bigint,uuid) to authenticated;

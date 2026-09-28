@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAnonymousAccessToken, getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { GameTable } from "@/components/game-table";
+import { RoomChat } from "@/components/room-chat";
 
 type Room = { id: string; join_code: string; capacity: number; timer_seconds: number; victory_mode: "score" | "all_cats"; target_score: number | null; status: string };
 type Player = { id: string; user_id: string; nickname: string; seat: number; is_ready: boolean; is_connected: boolean; is_host: boolean };
@@ -97,6 +98,7 @@ export function Lobby({ code }: { code: string }) {
               </div>
             </section>
             <aside className="space-y-5">
+              <RoomChat roomId={room.id} compact />
               <div className="lobby-panel p-6"><h2 className="font-display text-2xl font-bold">House rules</h2><dl className="rules-list"><div><dt><Users size={17} /> Seats</dt><dd>{players.length} / {room.capacity}</dd></div><div><dt><Clock3 size={17} /> Turns</dt><dd>{room.timer_seconds} sec</dd></div><div><dt>✦ Victory</dt><dd>{room.victory_mode === "all_cats" ? "All 10 cats" : `${room.target_score} points`}</dd></div></dl></div>
               <div className="lobby-panel p-6">
                 <p className="text-sm font-bold text-[var(--muted)]">You are {me?.is_host ? "the host" : `in seat ${me?.seat ?? "—"}`}.</p>

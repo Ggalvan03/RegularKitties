@@ -27,6 +27,12 @@ describe("preferences", () => {
     expect(plateMatches(["milk", "chicken"], preference)).toBe(true);
     expect(plateMatches(["fish", "milk"], preference)).toBe(false);
   });
+  it("matches repeated foods in left-to-right order", () => {
+    const preference = parsePreference(["chicken", "*", "fish", "2", "chicken", "3"]);
+    expect(plateMatches(["chicken", "chicken", "fish", "fish", "chicken", "chicken", "chicken"], preference)).toBe(true);
+    expect(plateMatches(["chicken", "chicken", "chicken", "chicken", "fish", "fish"], preference)).toBe(false);
+    expect(plateMatches(["fish", "fish", "chicken", "chicken", "chicken"], preference)).toBe(true);
+  });
 });
 
 describe("resolution", () => {

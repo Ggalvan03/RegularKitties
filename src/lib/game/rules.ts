@@ -62,13 +62,18 @@ export function parsePreference(tokens: readonly PreferenceToken[]): Preference 
 }
 
 export function plateMatches(plate: readonly Food[], preference: Preference): boolean {
-  const counts = Object.fromEntries(FOODS.map((food) => [food, 0])) as Record<Food, number>;
-  for (const food of plate) counts[food] += 1;
-  return preference.some((alternative) => {
-    const mentioned = new Set(alternative.map(({ food }) => food));
-    if (FOODS.some((food) => !mentioned.has(food) && counts[food] > 0)) return false;
-    return alternative.every(({ food, min, max }) => counts[food] >= min && (max === null || counts[food] <= max));
-  });
+  const matchesFrom = (requirements: Requirement[], requirementIndex: number, cardIndex: number): boolean => {
+    if (requirementIndex === requirements.length) return cardIndex === plate.length;
+    const requirement = requirements[requirementIndex];
+    let available = 0;
+    while (plate[cardIndex + available] === requirement.food) available += 1;
+    const maximum = Math.min(available, requirement.max ?? available);
+    for (let count = maximum; count >= requirement.min; count -= 1) {
+      if (matchesFrom(requirements, requirementIndex + 1, cardIndex + count)) return true;
+    }
+    return false;
+  };
+  return preference.some((alternative) => matchesFrom(alternative, 0, 0));
 }
 
 export function resolveUniqueLeader<T extends { id: string; plate: readonly Food[] }>(players: readonly T[], preference: Preference): T | null {
